@@ -113,6 +113,13 @@ RUN if [ -n "${EXTRA_PACKAGES}" ]; then python -m pip install --no-cache-dir ${E
 RUN infinity_emb --model-name-or-path $MODEL_NAME --engine $ENGINE --preload-only || [ $? -eq 3 ]
 ENTRYPOINT ["infinity_emb"]
 
+FROM production-with-download AS production-with-download-dist
+
+RUN pip install -U pyinstaller
+RUN pyinstaller infinity_emb/infinity_server.py
+RUN tar -czvf dist_infinity.tar.gz dist/
+ENTRYPOINT ["sh", "-c", "cp dist_infinity.tar.gz /dist"]
+
 # Use a multi-stage build -> production version
 FROM tested-builder AS production
 ENTRYPOINT ["infinity_emb"]
