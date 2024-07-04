@@ -1,5 +1,5 @@
 # Use the Python base image
-FROM nvidia/cuda:12.1.0-base-ubuntu22.04 AS base
+FROM redhat/ubi8 AS base
 
 ENV PYTHONUNBUFFERED=1 \
     \
@@ -16,7 +16,27 @@ ENV PYTHONUNBUFFERED=1 \
     EXTRAS="all" \
     PYTHON="python3.11"
 
-RUN apt-get update && apt-get install build-essential python3-dev $PYTHON-venv $PYTHON curl -y 
+#RUN apt-get update && apt-get install build-essential python3-dev $PYTHON-venv $PYTHON curl -y 
+# Step 1: Install dependencies and enable necessary repositories
+RUN dnf -y update && \
+    dnf -y install gcc gcc-c++ make bzip2-devel openssl-devel libffi-devel zlib-devel curl wget sqlite-devel && \
+    dnf -y module install python39
+
+# Step 2: Install Python 3.11 from source with --enable-shared
+RUN wget https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz && \
+    tar xzf Python-3.11.4.tgz && \
+    cd Python-3.11.4 && \
+    ./configure --enable-optimizations --enable-shared && \
+    make altinstall && \
+    ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
+    ldconfig
+
+# Set the library path
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+
+# Step 3: Install pip for Python 3.11
+RUN python3.11 -m ensurepip && \
+    python3.11 -m pip install --upgrade pip
 
 WORKDIR /app
 
